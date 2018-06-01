@@ -4,8 +4,8 @@ import collections
 
 # Global
 numeroCromossomos = 20
-populacao = 1000
-geracoes = 3000
+populacao = 500
+geracoes = 1500
 intervalo = [-6.0, 6.0]
 
 
@@ -188,7 +188,8 @@ def execGA():
 
         if any(round(agent.fitness, 2) == 0.00 for agent in agents):
 
-            print('Achei um bom')
+            print('Achei um bom na geracao ', geracao)
+
             exit(0)
 
 
