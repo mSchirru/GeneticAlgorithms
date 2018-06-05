@@ -2,79 +2,70 @@ import random
 import math
 import testSettings
 
-#User input
-funcao = input("Funcao que deseja minimizar: ")
-setfun = input("max / min")
-variaveis_da_funcao = []
+################ PARAMETERS OF THE FUNCTION############################
 
-for x in funcao:
-    if x.isalpha():
-        if x not in variaveis_da_funcao:
-            variaveis_da_funcao.append(x)
+function = '((x**2 + y - 11)**2) + ((x + y**2 - 7)**2)' # Insert the function
+setfun = 'min' # max or min to maximize ou minimize the function
+function_variables = ['x','y'] # set the variables of the function
+integrations_curves = [[-6.0, 6.0], [-6.0, 6.0]]
 
+#######################################################################
 
 
-# Global
-numeroCromossomos = 10 * int(len(variaveis_da_funcao))
-populacao = 100
-geracoes = 1000
-intervalo = [-6.0, 6.0]
+###################### PARAMETERS OF QEA ##############################
 
+number_of_alleles = 10 * int(len(function_variables))   # precision of chromossome
+population = 100  # Number of population for each generation
+generations = 1000 # number_of_alleles of maximum generations
+delta = 0.01 # Delta of the gate
 
-def definir_cromossomo_qbit():
-    cromossomo = []
+#######################################################################
+
+####################################################################################################################
+# This function define the pair of alpha and beta for each chromossome and intiliaze it with 50% chances (sqrt(2)/2)
+def define_qbit_chromossome():
+    chromossome = []
     alpha = beta = (math.sqrt(2) / 2)
-    for _ in range(numeroCromossomos):
+    for _ in range(number_of_alleles):
         qbit = [alpha, beta]
-        cromossomo.append(qbit)
+        chromossome.append(qbit)
 
-    return cromossomo
-
-
-# def converterQBIT(cromossomo):
-#     cromossomoClassico = []
-#     for qbit in cromossomo:
-#         rand = random.random()
-#         if rand > qbit[0] ** 2: # Minimiza funcao. > Maximiza funcao
-#             cromossomoClassico.append(1)
-#         else:
-#             cromossomoClassico.append(0)
-#
-#     return cromossomoClassico
+    return chromossome
+####################################################################################################################
 
 
-def functionX(variaveis_da_funcao, agent, funcao):
-    funcao2 = funcao
-    for aux in range(len(agent.cromossomoINT)):
-        if variaveis_da_funcao[aux] in funcao2:
-            funcao2 = funcao2.replace(str(variaveis_da_funcao[aux]), str(agent.cromossomoINT[aux]))
+def functionX(function_variables, agent, function):
+    function2 = function
+    for aux in range(len(agent.chromossomeINT)): # insert each variable in the function and return evaluate the fuction
+        if function_variables[aux] in function2:
+            function2 = function2.replace(str(function_variables[aux]), str(agent.chromossomeINT[aux]))
 
 
-    return eval(str(funcao2))
+    return eval(str(function2))
+
+####################################################################################################################
 
 
-def functionFindIntervals(valorIntervalo, posicaoDoCromossomo):
-    xintervalo = intervalo[0] + posicaoDoCromossomo * ((valorIntervalo[1] - (valorIntervalo[0])) / 1024)
+def functionFindIntervals(valorIntervalo, posicaoDoCromossomo, x):
+    xintervalo = integrations_curves[x][0] + posicaoDoCromossomo * ((valorIntervalo[1] - (valorIntervalo[0])) / 1024)
     return xintervalo
 
 
-def converterCromossomo(cromossomo):
+def converterCromossomo(chromossome):
     binaryChromeRepresentation = [] # Representa as variaveis que vao adquirir o valor binario da parcial
     realChromeRepresentation = [] # Representa as variaves que vao adquirir o valor real das variaveis binarias
-    variaveis =[]
 
+    parcial = int(number_of_alleles / len(function_variables))
 
-    parcial = int(numeroCromossomos / len(variaveis_da_funcao))
+    while len(binaryChromeRepresentation) != len(function_variables):
+        binaryChromeRepresentation.append(chromossome[:parcial])
+        chromossome = chromossome[parcial:]
 
-    while len(binaryChromeRepresentation) != len(variaveis_da_funcao):
-        binaryChromeRepresentation.append(cromossomo[:parcial])
-        cromossomo = cromossomo[parcial:]
-
-    for x in range(len(binaryChromeRepresentation)): # len de binaryChrome = len de variaveis da funcao
+    for x in range(len(binaryChromeRepresentation)): # len de binaryChrome = len de variaveis da function
         binaryChromeRepresentation[x] = ''.join(str(x) for x in binaryChromeRepresentation[x])
 
-    for x in range(len(variaveis_da_funcao)):
-        realChromeRepresentation.append(functionFindIntervals(intervalo, int(binaryChromeRepresentation[x], 2)))
+    for x in range(len(function_variables)):
+        realChromeRepresentation.append(functionFindIntervals(integrations_curves[x], int(binaryChromeRepresentation[x], 2), x))
 
 
     return realChromeRepresentation
@@ -82,25 +73,23 @@ def converterCromossomo(cromossomo):
 
 class Agent(object):
     def __init__(self):
-        self.cromossomoQBIT = definir_cromossomo_qbit()
-        self.cromossomoClassico = testSettings.setFunction[setfun](self.cromossomoQBIT)
-        self.cromossomoINT = converterCromossomo(self.cromossomoClassico)
-        self.fitnessPercent = 0.0
-        self.rangeRoleta = [0.0, 0.0]
+        self.chromossomeQBIT = define_qbit_chromossome()
+        self.chromossomeClassico = testSettings.setFunction[setfun](self.chromossomeQBIT)
+        self.chromossomeINT = converterCromossomo(self.chromossomeClassico)
         self.fitness = -1
 
     def __str__(self):
         return "CromossomoQBIT: {} | CromossomoClassico: {} | CromossomoINT: {} | Fitness: {}".format(
-            self.cromossomoQBIT, self.cromossomoClassico, self.cromossomoINT, self.fitness)
+            self.chromossomeQBIT, self.chromossomeClassico, self.chromossomeINT, self.fitness)
 
-def iniciarPopulacao(populacao):
-    return [Agent() for _ in range(populacao)]
+def iniciarPopulacao(population):
+    return [Agent() for _ in range(population)]
 
 
 def definirFitness(agents):
 
     for agent in agents:
-        agent.fitness = functionX(variaveis_da_funcao, agent, funcao)
+        agent.fitness = functionX(function_variables, agent, function)
     agents = sorted(agents, key=lambda x: x.fitness, reverse=True)
     print('\n'.join(map(str, agents)))
     return agents
@@ -117,22 +106,22 @@ def tableRotation(agents):
     epsilonDeltaTeta = 0.0
 
     for agent in agents:
-        for x in range(numeroCromossomos):
+        for x in range(number_of_alleles):
 
-            if agent.cromossomoClassico[x] == 0 and b.cromossomoClassico[x] == 0:
+            if agent.chromossomeClassico[x] == 0 and b.chromossomeClassico[x] == 0:
                 deltaTeta = 0.0
                 sinal = 0
 
-            if agent.cromossomoClassico[x] == 0 and b.cromossomoClassico[x] == 1:
+            if agent.chromossomeClassico[x] == 0 and b.chromossomeClassico[x] == 1:
                 if agent.fitness > b.fitness:
-                    deltaTeta = 0.01 * math.pi
-                    if agent.cromossomoQBIT[x][0] * agent.cromossomoQBIT[x][1] > 0:
+                    deltaTeta = delta * math.pi
+                    if agent.chromossomeQBIT[x][0] * agent.chromossomeQBIT[x][1] > 0:
                         sinal = -1
 
-                    if agent.cromossomoQBIT[x][0] * agent.cromossomoQBIT[x][1] < 0:
+                    if agent.chromossomeQBIT[x][0] * agent.chromossomeQBIT[x][1] < 0:
                         sinal = 1
 
-                    if agent.cromossomoQBIT[x][0] == 0:
+                    if agent.chromossomeQBIT[x][0] == 0:
                         rand = random.random()
                         if rand > 0.5:
                             sinal = 1
@@ -140,64 +129,64 @@ def tableRotation(agents):
                         else:
                             sinal = -1
 
-                    if agent.cromossomoQBIT[x][1] == 0:
+                    if agent.chromossomeQBIT[x][1] == 0:
                         sinal = 0
 
                 else:
-                    deltaTeta = 0.01 * math.pi
-                    if agent.cromossomoQBIT[x][0] * agent.cromossomoQBIT[x][1] > 0:
+                    deltaTeta = delta * math.pi
+                    if agent.chromossomeQBIT[x][0] * agent.chromossomeQBIT[x][1] > 0:
                         sinal = 1
 
-                    if agent.cromossomoQBIT[x][0] * agent.cromossomoQBIT[x][1] < 0:
+                    if agent.chromossomeQBIT[x][0] * agent.chromossomeQBIT[x][1] < 0:
                         sinal = -1
 
-                    if agent.cromossomoQBIT[x][0] == 0:
+                    if agent.chromossomeQBIT[x][0] == 0:
                         sinal = 0
 
-                    if agent.cromossomoQBIT[x][1] == 0:
+                    if agent.chromossomeQBIT[x][1] == 0:
                         rand = random.random()
                         if rand > 0.5:
                             sinal = 1
                         else:
                             sinal = -1
 
-            if agent.cromossomoClassico[x] == 1 and b.cromossomoClassico[x] == 0:
+            if agent.chromossomeClassico[x] == 1 and b.chromossomeClassico[x] == 0:
                 if agent.fitness > b.fitness:
-                    deltaTeta = 0.01 * math.pi
-                    if agent.cromossomoQBIT[x][0] * agent.cromossomoQBIT[x][1] > 0:
+                    deltaTeta = delta * math.pi
+                    if agent.chromossomeQBIT[x][0] * agent.chromossomeQBIT[x][1] > 0:
                         sinal = 1
 
-                    if agent.cromossomoQBIT[x][0] * agent.cromossomoQBIT[x][1] < 0:
+                    if agent.chromossomeQBIT[x][0] * agent.chromossomeQBIT[x][1] < 0:
                         sinal = -1
 
-                    if agent.cromossomoQBIT[x][0] == 0:
+                    if agent.chromossomeQBIT[x][0] == 0:
                         sinal = 0
 
-                    if agent.cromossomoQBIT[x][1] == 0:
+                    if agent.chromossomeQBIT[x][1] == 0:
                         rand = random.random()
                         if rand > 0.5:
                             sinal = 1
                         else:
                             sinal = -1
                 else:
-                    deltaTeta = 0.01 * math.pi
-                    if agent.cromossomoQBIT[x][0] * agent.cromossomoQBIT[x][1] > 0:
+                    deltaTeta = delta * math.pi
+                    if agent.chromossomeQBIT[x][0] * agent.chromossomeQBIT[x][1] > 0:
                         sinal = 1
 
-                    if agent.cromossomoQBIT[x][0] * agent.cromossomoQBIT[x][1] < 0:
+                    if agent.chromossomeQBIT[x][0] * agent.chromossomeQBIT[x][1] < 0:
                         sinal = -1
 
-                    if agent.cromossomoQBIT[x][0] == 0:
+                    if agent.chromossomeQBIT[x][0] == 0:
                         sinal = 0
 
-                    if agent.cromossomoQBIT[x][1] == 0:
+                    if agent.chromossomeQBIT[x][1] == 0:
                         rand = random.random()
                         if rand > 0.5:
                             sinal = 1
                         else:
                             sinal = -1
 
-            if agent.cromossomoClassico[x] == 1 and b.cromossomoClassico[x] == 1:
+            if agent.chromossomeClassico[x] == 1 and b.chromossomeClassico[x] == 1:
                 deltaTeta = 0.0
                 sinal = 0
 
@@ -212,15 +201,15 @@ def updateUsingGate(agents):
     x_ep = 0
 
     for agent in agents:
-        for qbit in agent.cromossomoQBIT:
+        for qbit in agent.chromossomeQBIT:
             alpha = ((math.cos(epsilons[x_ep]) * qbit[0]) + (-math.sin(epsilons[x_ep]) * qbit[1]))
             beta = ((math.sin(epsilons[x_ep]) * qbit[0]) + (math.cos(epsilons[x_ep]) * qbit[1]))
 
             qbit[0] = alpha
             qbit[1] = beta
             x_ep += 1
-        agent.cromossomoClassico = testSettings.setFunction[setfun](agent.cromossomoQBIT)
-        agent.cromossomoINT = converterCromossomo(agent.cromossomoClassico)
+        agent.chromossomeClassico = testSettings.setFunction[setfun](agent.chromossomeQBIT)
+        agent.chromossomeINT = converterCromossomo(agent.chromossomeClassico)
 
     return agents
 
@@ -228,16 +217,16 @@ def updateUsingGate(agents):
 def execGA():
 
 
-    agents = iniciarPopulacao(populacao)  # Inicio uma populacao aleatoria
+    agents = iniciarPopulacao(population)  # Inicio uma population aleatoria
 
-    for geracao in range(geracoes):
+    for geracao in range(generations):
         print("Geracao " + str(geracao))
 
         agents = definirFitness(agents)  # Defino a fitness
         agents = updateUsingGate(agents)
 
-        if any(round(agent.fitness, 2) == 0.00 for agent in agents):
-        # if any(agent.fitness >= 7198 for agent in agents):
+        if any(round(agent.fitness, 5) == 0.0000 for agent in agents):
+        # if any(agent.fitness   for agent in agents):
             print('Achei um bom na geracao ', geracao)
             exit(0)
 
