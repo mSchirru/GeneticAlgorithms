@@ -1,23 +1,23 @@
 import random
 import collections
 import math
+import copy
+from operator import attrgetter
 
 # Global
 
-populacao = 10
-geracoes = 10
-dimensions = 10
+populacao = 100
+geracoes = 2000
+dimensions = 30
 intervalo = [[-100.0, 100.0]] * dimensions
 numeroCromossomos = 10 * dimensions
-delta = 0.1
-bestAgent = []
-
+delta = 0.09
 
 
 def functionX(vetorSolucaoDeUmCromossomo):
     result = 0
     for x in range(dimensions):
-        result += vetorSolucaoDeUmCromossomo[x]**2
+        result += (vetorSolucaoDeUmCromossomo[x]**2)
 
     return result
 
@@ -74,7 +74,7 @@ class Agent(object):
         self.cromossomoQBIT = definir_cromossomo_qbit()
         self.cromossomoClassico = converterQBIT(self.cromossomoQBIT)
         self.cromossomoINT = converterCromossomo(self.cromossomoClassico)
-        self.fitness = -1
+        self.fitness = 9999999
 
     def __str__(self):
         return "Fitness: {}".format(self.fitness)
@@ -86,12 +86,21 @@ def iniciarPopulacao(populacao):
 
 
 def definirFitness(agents):
+
     for agent in agents:
         agent.fitness = functionX(agent.cromossomoINT)
-    agents = sorted(agents, key=lambda x: x.fitness, reverse=True)
-    print('\n'.join(map(str, agents)))
-    print("ULTIMO", agents[-1])
+    # agents = sorted(agents, key=lambda x: x.fitness, reverse=True)
+    #print('\n'.join(map(str, agents)))
+    print(min(agents, key=attrgetter('fitness')))
+
     return agents
+
+def findBestGlobal(agents, bestAgent):
+    melhorGeracao = min(agents, key=attrgetter('fitness'))
+    if bestAgent.fitness > melhorGeracao.fitness:
+        bestAgent = copy.deepcopy(melhorGeracao)
+
+    return bestAgent
 
 
 def tableRotation(agents, bestAgent):
@@ -209,28 +218,16 @@ def updateUsingGate(agents, bestAgent):
     return agents
 
 
-def execGA(bestAgent):
+def execGA():
     agents = iniciarPopulacao(populacao)  # Inicio uma populacao aleatoria
+    bestAgent = copy.deepcopy(agents[0])
 
     for geracao in range(geracoes):
-
-
         print("Geracao " + str(geracao))
 
         agents = definirFitness(agents)  # Defino a fitness
-
-        if type(bestAgent) == list:
-            bestAgent = agents[-1]
-        else:
-            print("BEST GLOBAL", bestAgent.fitness)
-            print("BEST GERACAO", agents[-1].fitness)
-            if bestAgent.fitness > agents[-1].fitness:
-                bestAgent = agents[-1]
-                print("BEST GLOBAL DEPOIS DA TROCA", bestAgent.fitness)
-                print("BEST GERACAO DEPOIS DA TROCA", agents[-1].fitness)
-            else:
-                pass
-
+        bestAgent = findBestGlobal(agents, bestAgent)
+        print("BEST AGENT", bestAgent)
         agents = updateUsingGate(agents, bestAgent)
 
         # if any(round(agent.fitness, 2) == 0.00 for agent in agents):
@@ -238,4 +235,4 @@ def execGA(bestAgent):
         #     exit(0)
 
 
-execGA(bestAgent)
+execGA()
