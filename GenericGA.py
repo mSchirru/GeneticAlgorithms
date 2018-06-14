@@ -4,12 +4,12 @@ from operator import attrgetter
 
 # Global
 
-populacao = 2000
-geracoes = 4000
-dimensoes = 10
+populacao = 100
+geracoes = 100000
+dimensoes = 5
 taxaCrossOver = int(0.8*populacao)
-taxaMutacao = 0.05
-intervalo = [[-5.12, 5.12]] * dimensoes
+taxaMutacao = 0.01
+intervalo = [[-100.0, 100.0]] * dimensoes
 numeroCromossomos = 10 * dimensoes
 
 
@@ -64,12 +64,15 @@ class Agent(object):
         self.fitnessPercent = 0.0
         self.rangeRoleta = [0.0, 0.0]
         self.fitness = 99999999
+        self.weight = 1
+
 
     def __str__(self):
-       return "Fitness: {}".format(self.fitness)
-
-        #return "CromossomoClassico: {} | CromossomoINT: {} | Fitness: {}".format(
-         #   self.cromossomoBIT, self.cromossomoINT, self.fitness)
+        # return "Fitness: {}".format(self.fitness)
+       return "Fitness: {} | Peso {} | RangeRoleta: {} | FitnessPercent: {}".format(self.fitness, self.weight, self.rangeRoleta, self.fitnessPercent)
+       #
+        # return "CromossomoClassico: {} | CromossomoINT: {} | Fitness: {} | RangeRoleta: {}".format(
+        #    self.cromossomoBIT, self.cromossomoINT, self.fitness, self.rangeRoleta)
 
 
 def iniciarPopulacao(populacao):
@@ -89,6 +92,7 @@ def findBestGlobal(agents, bestAgent):
     return bestAgent
 
 def calcularFitnessPercent(agents):
+
     somatorio = 0
     for agent in agents:
         agent.fitnessPercent = 0.0
@@ -96,36 +100,45 @@ def calcularFitnessPercent(agents):
         somatorio += x.fitness
 
     for agent in agents:
-        agent.fitnessPercent = (somatorio / agent.fitness)
+        agent.fitnessPercent =  1 - ((agent.fitness) / somatorio)
     return agents
 
 
 def definirRangeRoleta(agents):
+    somageral = (100+1)*(100/2)
     for agent in agents:
         agent.rangeRoleta = [0.0, 0.0]
     agents = sorted(agents, key=lambda x: x.fitnessPercent, reverse=True)
     # print("ANTES DO FOR")
     # print('\n'.join(map(str, agents)))
     somatorio = 0
+    peso = 1
     for x in range(populacao):
         if x == 0:
             somatorio += agents[x].fitnessPercent
             agents[x].rangeRoleta[1] = somatorio
             agents[x].rangeRoleta[0] = 0.0
+            agents[x].weight = (peso/somageral) * 100
         else:
+            peso += 1
             agents[x].rangeRoleta[0] = somatorio
             agents[x].rangeRoleta[1] = (somatorio + agents[x].fitnessPercent)
+            agents[x].weight = (peso/somageral) *100
             somatorio += agents[x].fitnessPercent
-    # print("DEPOIS DO FOR")
+
+    # print("DEPOIS DA DEFINICAO DA FITNESS")
     # print('\n'.join(map(str, agents)))
 
     return agents
 
 
+
 def selecao(agents, bestAgent):
     listaSelecionados = []
-    #print('\n'.join(map(str, agents)))
-    print(min(agents, key=attrgetter('fitness')))
+    agents = sorted(agents, key=lambda x: x.fitnessPercent, reverse=True)
+    # print('\n'.join(map(str, agents)))
+
+    # print(min(agents, key=attrgetter('fitness')))
     somatorio = 0
     for x in agents:
         somatorio += x.fitnessPercent
@@ -147,46 +160,72 @@ def selecao(agents, bestAgent):
         del agents[0]
 
     agents = listaSelecionados
+    print('\n'.join(map(str, agents)))
+
 
     return agents
 
+# def rankSelection(agents):
+#     aux = 1.0
+#     for agent in agents:
+#         agent.weight = aux / 10.0
+#         aux += 1.0
+
+
+
 
 def crossover(agents, taxaCrossOver):
-    list = [*range(populacao)]
-
     for _ in range(int(taxaCrossOver/2)):  # Crossando sempre 80% da populacao
-        indexPai = random.choice(list)
-        pai = agents[indexPai]
-        list.remove(indexPai)
 
-        indexMae = random.choice(list)
-        list.remove(indexMae)
-        mae = agents[indexMae]
+        randPai = random.choice(agents)
+        pai = copy.deepcopy(randPai)
+
+
+        randMae = random.choice(agents)
+        while randMae == randPai:
+
+            randMae = random.choice(agents)
+
+        mae = copy.deepcopy(randMae)
 
         child1 = Agent()
         child2 = Agent()
-        split = random.randint(0, numeroCromossomos)
-        child1.string = pai.cromossomoBIT[0:split] + mae.cromossomoBIT[split:numeroCromossomos]
-        child2.string = mae.cromossomoBIT[0:split] + pai.cromossomoBIT[split:numeroCromossomos]
+        #ONE POINT CROSSOVER
+        split = random.randint(1, numeroCromossomos-1)
+        child1.cromossomoBIT = pai.cromossomoBIT[:split] + mae.cromossomoBIT[split:]
+        child2.cromossomoBIT = mae.cromossomoBIT[:split] + pai.cromossomoBIT[split:]
 
-        agents.remove(mae)
-        agents.remove(pai)
+        agents.remove(randMae)
+        agents.remove(randPai)
 
         agents.append(child1)
         agents.append(child2)
+
+
 
     return agents
 
 
 def mutar(agents, taxaMutacao):
-    for agent in agents:
-        pontoCorte = random.randint(0, numeroCromossomos-1)  # Gero um ponto de corte aleatorio
-        chanceMutacao = random.random()
-        if chanceMutacao <=taxaMutacao:  # Chance de mutacao em 0.01
-            if agent.cromossomoBIT[pontoCorte] == 0:
-                agent.cromossomoBIT[pontoCorte] = 1
-            else:
-                agent.cromossomoBIT[pontoCorte] = 0
+    individuoEscolhido = random.choice(agents)
+    pontoCorte = random.randint(1, numeroCromossomos-1)
+    chanceMutacao = random.random()
+    if chanceMutacao <= taxaMutacao:
+        if individuoEscolhido.cromossomoBIT[pontoCorte] == 0:
+            individuoEscolhido.cromossomoBIT[pontoCorte] = 1
+        else:
+            individuoEscolhido.cromossomoBIT[pontoCorte] = 0
+
+
+
+    # for agent in agents:
+    #     pontoCorte = random.randint(0, numeroCromossomos-1)  # Gero um ponto de corte aleatorio
+    #     chanceMutacao = random.random()
+    #     if chanceMutacao <=taxaMutacao:  # Chance de mutacao em 0.01
+    #         if agent.cromossomoBIT[pontoCorte] == 0:
+    #             agent.cromossomoBIT[pontoCorte] = 1
+    #         else:
+    #             agent.cromossomoBIT[pontoCorte] = 0
 
     return agents
 
@@ -203,12 +242,13 @@ def execGA(taxaCrossOver, taxaMutacao):
         agents = definirRangeRoleta(agents)  # Defino o range na roleta
         bestAgent = findBestGlobal(agents, bestAgent)
         print("BEST AGENT", bestAgent)
-        agents = selecao(agents, bestAgent)  # Seleciono novos individuos a partir da geracao anterior
+        agents = selecao(agents, bestAgent) # Seleciono novos individuos a partir da geracao anterior
         agents = crossover(agents, taxaCrossOver)  # Crosso esses individuos
         agents = mutar(agents, taxaMutacao)  # Muto eles
 
-        if any(round(agent.fitness, 2) == 0.00 for agent in agents):
-            print('Achei um bom')
-            exit(0)
+
+        # if any(round(agent.fitness, 2) == 0.00 for agent in agents):
+        #     print('Achei um bom')
+        #     exit(0)
 
 execGA(taxaCrossOver, taxaMutacao)
