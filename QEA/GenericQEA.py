@@ -1,6 +1,6 @@
 import random
 import math
-import testSettings
+from QEA import testSettings
 
 ################ PARAMETERS OF THE FUNCTION############################
 
