@@ -7,16 +7,17 @@ from operator import attrgetter
 # Global
 
 populacao = 100
-geracoes = 2000
+geracoes = 4000
 dimensions = 30
 intervalo = [[-100.0, 100.0]] * dimensions
 numeroCromossomos = 10 * dimensions
-delta = 0.09
+delta = 0.05
 
 
 def functionX(vetorSolucaoDeUmCromossomo):
     result = 0
     for x in range(dimensions):
+        y = x+1
         result += (vetorSolucaoDeUmCromossomo[x]**2)
 
     return result
@@ -74,7 +75,7 @@ class Agent(object):
         self.cromossomoQBIT = definir_cromossomo_qbit()
         self.cromossomoClassico = converterQBIT(self.cromossomoQBIT)
         self.cromossomoINT = converterCromossomo(self.cromossomoClassico)
-        self.fitness = 9999999
+        self.fitness = 9999999999999999999999999
 
     def __str__(self):
         return "Fitness: {}".format(self.fitness)
@@ -89,8 +90,6 @@ def definirFitness(agents):
 
     for agent in agents:
         agent.fitness = functionX(agent.cromossomoINT)
-    # agents = sorted(agents, key=lambda x: x.fitness, reverse=True)
-    #print('\n'.join(map(str, agents)))
     print(min(agents, key=attrgetter('fitness')))
 
     return agents
