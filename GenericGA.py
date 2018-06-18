@@ -5,8 +5,8 @@ from operator import attrgetter
 # Global
 
 populacao = 100
-geracoes = 10000
-dimensoes = 5
+geracoes = 1000
+dimensoes = 30
 taxaCrossOver = int(0.8*populacao)
 taxaMutacao = 0.001
 intervalo = [[-100.0, 100.0]] * dimensoes
@@ -63,17 +63,17 @@ class Agent(object):
         self.cromossomoINT = converterCromossomo(self.cromossomoBIT)
         self.fitnessPercent = 0.0
         self.rangeRoleta = [0.0, 0.0]
-        self.fitness = 99999999
-        self.ficFitness = 999
+        self.fitness = -99999999
+        self.mutado = False
 
 
 
     def __str__(self):
-        # return "Fitness: {}".format(self.fitness)
-       return "Fitness: {} | RangeRoleta: {} | FitnessPercent: {}".format(self.fitness, self.rangeRoleta, self.fitnessPercent)
+        return "Fitness: {}".format(1/self.fitness)
+       # return "Fitness: {} | RangeRoleta: {} | FitnessPercent: {}".format(1/self.fitness, self.rangeRoleta, self.fitnessPercent)
 
         # return "CromossomoClassico: {} | CromossomoINT: {} | Fitness: {} | RangeRoleta: {}".format(
-           # self.cromossomoBIT, self.cromossomoINT, self.fitness, self.rangeRoleta)
+           # self.cromossomoBIT, self.cromossomoINT, 1/self.fitness, self.rangeRoleta)
 #
 
 def iniciarPopulacao(populacao):
@@ -82,12 +82,12 @@ def iniciarPopulacao(populacao):
 
 def definirFitness(agents):
     for agent in agents:
-        agent.fitness = functionX(agent.cromossomoINT)
+        agent.fitness = 1/functionX(agent.cromossomoINT)
     return agents
 
 def findBestGlobal(agents, bestAgent):
-    melhorGeracao = min(agents, key=attrgetter('fitness'))
-    if bestAgent.fitness > melhorGeracao.fitness:
+    melhorGeracao = max(agents, key=attrgetter('fitness'))
+    if bestAgent.fitness < melhorGeracao.fitness:
         bestAgent = copy.deepcopy(melhorGeracao)
 
     return bestAgent
@@ -101,12 +101,11 @@ def calcularFitnessPercent(agents):
         somatorio += x.fitness
 
     for agent in agents:
-        agent.fitnessPercent =  agent.fitness / somatorio
+        agent.fitnessPercent = agent.fitness / somatorio
     return agents
 
 
 def definirRangeRoleta(agents):
-    somageral = (100+1)*(100/2)
     for agent in agents:
         agent.rangeRoleta = [0.0, 0.0]
     agents = sorted(agents, key=lambda x: x.fitnessPercent, reverse=True)
@@ -132,6 +131,32 @@ def definirRangeRoleta(agents):
 
     return agents
 
+def selecao(agents):
+    listaSelecionados = []
+    agents = sorted(agents, key=lambda x: x.fitnessPercent, reverse=True)
+    # print('\n'.join(map(str, agents)))
+    somatorio = 0
+    for x in agents:
+        somatorio += x.fitnessPercent
+
+
+    for _ in range(populacao):
+        numeroAleatorio = random.uniform(0.0, somatorio)
+        for agent in agents:
+            if numeroAleatorio >= agent.rangeRoleta[0] and numeroAleatorio < agent.rangeRoleta[1]:
+
+                # Todos os objetos que eu quero adicionar na lista, tem que
+                # ser novos objetos e não cópias dos q já existem
+                agenteSelecionado = copy.deepcopy(agent)
+                listaSelecionados.append(agenteSelecionado)
+                break
+#  Destruo todas as referencias dos objetos antigos
+    for _ in range(len(agents)):
+        del agents[0]
+
+    agents = listaSelecionados
+
+    return agents
 
 
 def selecaoProCross(agents):
@@ -144,7 +169,7 @@ def selecaoProCross(agents):
     for x in agents:
         somatorio += x.fitnessPercent
 
-    for _ in range(taxaCrossOver):
+    while len(listaSelecionados) != taxaCrossOver:
         numeroAleatorio = random.uniform(0.0, somatorio)
         for agent in agents:
             if numeroAleatorio >= agent.rangeRoleta[0] and numeroAleatorio < agent.rangeRoleta[1]:
@@ -153,17 +178,20 @@ def selecaoProCross(agents):
                 # ser novos objetos e não cópias dos q já existem
                 agenteSelecionado = copy.deepcopy(agent)
                 listaSelecionados.append(agenteSelecionado)
+                agents.remove(agent)
                 break
 
-    # print('\n'.join(map(str, listaSelecionados)))
+    # print("TESTEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", len(agents))
+
+    # print('\n'.join(map(str, agents)))
 
 
-    return listaSelecionados
+    return listaSelecionados, agents
 
 
 
 
-def crossover(listaSelecionados, taxaCrossOver, agents):
+def crossover(listaSelecionados, taxaCrossOver, agents, bestAgent):
     novaGeracao = []
     for _ in range(int(taxaCrossOver/2)):  # Crossando sempre 80% da populacao
 
@@ -172,9 +200,9 @@ def crossover(listaSelecionados, taxaCrossOver, agents):
 
 
         randMae = random.choice(listaSelecionados)
-        # while randMae == randPai:
-        #
-        #     randMae = random.choice(listaSelecionados)
+        while randMae == randPai:
+
+            randMae = random.choice(listaSelecionados)
 
         mae = copy.deepcopy(randMae)
 
@@ -184,19 +212,24 @@ def crossover(listaSelecionados, taxaCrossOver, agents):
         split = random.randint(1, numeroCromossomos-1)
         child1.cromossomoBIT = pai.cromossomoBIT[:split] + mae.cromossomoBIT[split:]
         child2.cromossomoBIT = mae.cromossomoBIT[:split] + pai.cromossomoBIT[split:]
+        child1.cromossomoINT = converterCromossomo(child1.cromossomoBIT)
+        child2.cromossomoINT = converterCromossomo(child2.cromossomoBIT)
 
-        # listaSelecionados.remove(randMae)
-        # listaSelecionados.remove(randPai)
+
+        listaSelecionados.remove(randMae)
+        listaSelecionados.remove(randPai)
+        del pai
+        del mae
 
         novaGeracao.append(child1)
         novaGeracao.append(child2)
 
-    novaGeracao.append(min(agents, key=attrgetter('fitness')))
+    novaGeracao += agents
+    novaGeracao.remove(min(agents, key=attrgetter('fitness')))
+    novaGeracao.append(bestAgent)
 
-    while len(novaGeracao) != len(agents):
-        novaGeracao.append(copy.deepcopy(random.choice(agents)))
-
-    print('\n'.join(map(str, novaGeracao)))
+    novaGeracao = definirFitness(novaGeracao)
+    # print('\n'.join(map(str, novaGeracao)))
 
     return novaGeracao
 
@@ -206,16 +239,20 @@ def mutar(agents, taxaMutacao):
     teste = int((populacao * numeroCromossomos) * taxaMutacao)
     for _ in range(teste):
         individuoRand = random.choice(agents)
+        while individuoRand.mutado == True:
+            individuoRand = random.choice(agents)
         individuoAmutar = copy.deepcopy(individuoRand)
         agents.remove(individuoRand)
 
         pontoCorte = random.randint(1, numeroCromossomos-1)
         if individuoAmutar.cromossomoBIT[pontoCorte] == 0:
             individuoAmutar.cromossomoBIT[pontoCorte] = 1
+            individuoAmutar.mutado = True
             agents.append(individuoAmutar)
 
         else:
             individuoAmutar.cromossomoBIT[pontoCorte] = 0
+            individuoAmutar.mutado = True
             agents.append(individuoAmutar)
     return agents
 
@@ -231,10 +268,13 @@ def execGA(taxaCrossOver, taxaMutacao):
         agents = calcularFitnessPercent(agents)  # Calculo o percentual na rolate
         agents = definirRangeRoleta(agents)  # Defino o range na roleta
         bestAgent = findBestGlobal(agents, bestAgent)
+        agents = selecao(agents)
         print("BEST AGENT", bestAgent)
-        listaSelecionados = selecaoProCross(agents) # Seleciono novos individuos a partir da geracao anterior
-        agents = crossover(listaSelecionados, taxaCrossOver, agents)  # Crosso esses individuos
+        listaSelecionados, agents = selecaoProCross(agents) # Seleciono novos individuos a partir da geracao anterior
+        agents = crossover(listaSelecionados, taxaCrossOver, agents, bestAgent)  # Crosso esses individuos
         agents = mutar(agents, taxaMutacao)  # Muto eles
+        # print('\n'.join(map(str, agents)))
+        print(max(agents, key=attrgetter('fitness')))
 
 
         # if any(round(agent.fitness, 2) == 0.00 for agent in agents):
