@@ -1,16 +1,17 @@
 import random
 import copy
 from operator import attrgetter
+import matplotlib.pyplot as plt
 
 # Global
 
-population = 100
-generations = 1000
+population = 1000
+generations = 2000
 dimensions = 30
 crossover_percentage = int(0.8*population)
-mutation_percentage = 0.001
-intervals = [[-100.0, 100.0]] * dimensions
-chromosome_alleles_number = 10 * dimensions
+mutation_percentage = 0.01
+intervals = [[-5.12, 5.12]] * dimensions
+chromosome_alleles_number = 12 * dimensions
 
 
 def function_x(chromosome_vector_solution):
@@ -35,7 +36,7 @@ def generate_binary_chromosome():
 
 def interval_precision(interval_value, chromosome_position, x):
 
-    xintervals = intervals[x][0] + chromosome_position * ((interval_value[1] - (interval_value[0])) / 1024)
+    xintervals = intervals[x][0] + chromosome_position * ((interval_value[1] - (interval_value[0])) / 4096)
 
     return xintervals
 
@@ -183,7 +184,7 @@ def select_for_crossover(agents):
 
 
 
-def crossover(selected_list, crossover_percentage, agents, bestAgent):
+def crossover(selected_list, crossover_percentage, agents):
 
     new_generation = []
 
@@ -219,17 +220,14 @@ def crossover(selected_list, crossover_percentage, agents, bestAgent):
         new_generation.append(child2)
 
     new_generation += agents
-    new_generation.remove(min(agents, key=attrgetter('fitness')))
-    new_generation.append(bestAgent)
 
-    new_generation = define_fitness(new_generation)
 
     return new_generation
 
 
 def mutar(agents, mutation_percentage):
 
-    mutations_number = int((population * chromosome_alleles_number) * mutation_percentage)
+    mutations_number = int(population * mutation_percentage)
 
     for _ in range(mutations_number):
         randomic_agent = random.choice(agents)
@@ -255,6 +253,8 @@ def mutar(agents, mutation_percentage):
 
 
 def execGA(crossover_percentage, mutation_percentage):
+    teste1 = []
+    teste2 = []
     agents = initialize_population(population)
     bestAgent = copy.deepcopy(agents[0])
 
@@ -268,11 +268,25 @@ def execGA(crossover_percentage, mutation_percentage):
         agents = select_by_roulette(agents)
         print("BEST AGENT", bestAgent)
         selected_list, agents = select_for_crossover(agents)
-        agents = crossover(selected_list, crossover_percentage, agents, bestAgent)
+        agents = crossover(selected_list, crossover_percentage, agents)
         agents = mutar(agents, mutation_percentage)
+        agents.remove(min(agents, key=attrgetter('fitness')))
+        agents.append(bestAgent)
+        teste1.append(generation)
+        teste2.append(1/bestAgent.fitness)
 
 
         print(max(agents, key=attrgetter('fitness')))
+
+    plt.plot(teste1, teste2)
+    plt.title('GA Roleta Postiva 02')
+    plt.ylabel('best agents fitness')
+    plt.xlabel('generations')
+    plt.text(teste1[3], 100,
+             'Geracoes: 2000 | Populacao: 1000 | Mutacao: 0.01 | Cross: 0.08')
+    plt.text(teste2[3], 70, 'Precisao: 12 Bits | Intervalo: -5.12, 5.12 | Dimensao: 30' )
+
+    plt.show()
 
 
 

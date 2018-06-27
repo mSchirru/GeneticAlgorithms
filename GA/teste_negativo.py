@@ -294,7 +294,7 @@ def execGA(crossover_percentage, mutation_percentage):
         # print('\n'.join(map(str, agents)))
 
     plt.plot(teste1, teste2)
-    plt.title('GA Roleta Negativa 01')
+    plt.title('GA Roleta Negativa 03')
     plt.ylabel('best agents fitness')
     plt.xlabel('generations')
     plt.text(teste2[3], 100,

@@ -3,14 +3,15 @@ import collections
 import math
 import copy
 from operator import attrgetter
+import matplotlib.pyplot as plt
 
 # Global
 
-populacao = 100
-geracoes = 4000
+populacao = 1000
+geracoes = 2000
 dimensions = 30
-intervalo = [[-100.0, 100.0]] * dimensions
-numeroCromossomos = 10 * dimensions
+intervalo = [[-5.12, 5.12]] * dimensions
+numeroCromossomos = 12 * dimensions
 delta = 0.05
 
 
@@ -46,7 +47,7 @@ def converterQBIT(cromossomo):
 
 
 def functionFindIntervals(valorIntervalo, posicaoDoCromossomo, x):
-    xintervalo = intervalo[x][0] + posicaoDoCromossomo * ((valorIntervalo[1] - (valorIntervalo[0])) / 1024)
+    xintervalo = intervalo[x][0] + posicaoDoCromossomo * ((valorIntervalo[1] - (valorIntervalo[0])) / 4096)
     return xintervalo
 
 
@@ -218,6 +219,8 @@ def updateUsingGate(agents, bestAgent):
 
 
 def execGA():
+    teste1 =[]
+    teste2 = []
     agents = iniciarPopulacao(populacao)  # Inicio uma populacao aleatoria
     bestAgent = copy.deepcopy(agents[0])
 
@@ -228,6 +231,16 @@ def execGA():
         bestAgent = findBestGlobal(agents, bestAgent)
         print("BEST AGENT", bestAgent)
         agents = updateUsingGate(agents, bestAgent)
+
+    plt.plot(teste1, teste2)
+    plt.title('QEA 02')
+    plt.ylabel('best agents fitness')
+    plt.xlabel('generations')
+    plt.text(teste2[3], 100,
+             'Geracoes: 2000 | Populacao: 1000 | Delta: 0.05')
+    plt.text(teste2[3], 70, 'Precisao: 12 Bits | Intervalo: -5.12, 5.12 | Dimensao: 30')
+
+    plt.show()
 
         # if any(round(agent.fitness, 2) == 0.00 for agent in agents):
         #     print('Achei um bom na geracao ', geracao)
